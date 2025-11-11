@@ -6,10 +6,16 @@ FROM node:16-alpine AS node-build
 WORKDIR /app
 
 # Copy package files
-COPY ppdb/package*.json ./
+COPY ppdb/package.json ./
+COPY ppdb/package-lock.json* ./
 
 # Install dependencies (termasuk dev dependencies untuk build)
-RUN npm ci
+# Gunakan --legacy-peer-deps untuk menghindari peer dependency issues
+RUN if [ -f package-lock.json ]; then \
+        npm ci --legacy-peer-deps; \
+    else \
+        npm install --legacy-peer-deps; \
+    fi
 
 # Copy source files untuk build
 COPY ppdb/resources ./resources
