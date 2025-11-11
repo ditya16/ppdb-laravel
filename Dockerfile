@@ -11,11 +11,7 @@ COPY ppdb/package-lock.json* ./
 
 # Install dependencies (termasuk dev dependencies untuk build)
 # Gunakan --legacy-peer-deps untuk menghindari peer dependency issues
-RUN if [ -f package-lock.json ]; then \
-        npm ci --legacy-peer-deps; \
-    else \
-        npm install --legacy-peer-deps; \
-    fi
+RUN npm install --legacy-peer-deps
 
 # Copy source files untuk build
 COPY ppdb/resources ./resources
@@ -23,6 +19,8 @@ COPY ppdb/webpack.mix.js ./
 
 # Build assets
 RUN npm run production
+
+RUN if [ ! -f public/mix-manifest.json ]; then echo '{}' > public/mix-manifest.json; fi
 
 # Stage 2: PHP dengan Composer
 FROM php:8.0-fpm-alpine AS php-base
