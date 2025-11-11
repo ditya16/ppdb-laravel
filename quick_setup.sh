@@ -2,6 +2,11 @@
 
 set -e
 
+# Check if running in non-interactive mode (for CI/CD)
+NON_INTERACTIVE=${1:-false}
+RUN_SEEDERS=${2:-false}
+USE_FRESH=${3:-false}
+
 echo "🚀 Setting up Laravel PPDB..."
 
 # Check if containers are running
@@ -15,16 +20,23 @@ fi
 # Check if .env exists
 if [ ! -f "ppdb/.env" ]; then
     echo "⚠️  File ppdb/.env not found!"
-    echo "Creating from template..."
-    cp env-template.txt ppdb/.env
-    echo "✅ Created ppdb/.env from template"
-    echo "⚠️  Please edit ppdb/.env and set your configuration!"
-    read -p "Press enter to continue after editing .env..."
+    if [ "$NON_INTERACTIVE" = "true" ]; then
+        echo "❌ .env file is required but not found. Exiting..."
+        exit 1
+    else
+        echo "Creating from template..."
+        if [ -f "env-template.txt" ]; then
+            cp env-template.txt ppdb/.env
+            echo "✅ Created ppdb/.env from template"
+        fi
+        echo "⚠️  Please edit ppdb/.env and set your configuration!"
+        read -p "Press enter to continue after editing .env..."
+    fi
 fi
 
 # Generate APP_KEY
 echo "📝 Generating APP_KEY..."
-docker exec ppdb-laravel-app php artisan key:generate || echo "⚠️  APP_KEY might already be set"
+docker exec ppdb-laravel-app php artisan key:generate --force || echo "⚠️  APP_KEY might already be set"
 
 # Set permissions
 echo "🔐 Setting permissions..."
@@ -37,15 +49,35 @@ echo "⏳ Waiting for database..."
 sleep 5
 
 # Run migrations
-echo "📊 Running migrations..."
-docker exec ppdb-laravel-app php artisan migrate:fresh --force || echo "⚠️  Migration might have failed, check logs"
+if [ "$USE_FRESH" = "true" ]; then
+    echo "📊 Running fresh migrations (will drop all existing tables)..."
+    if [ "$NON_INTERACTIVE" = "true" ]; then
+        docker exec ppdb-laravel-app php artisan migrate:fresh --force || echo "⚠️  Migration might have failed, check logs"
+    else
+        read -p "⚠️  This will DELETE all existing data! Continue? (y/n) " -n 1 -r
+        echo
+        if [[ $REPLY =~ ^[Yy]$ ]]; then
+            docker exec ppdb-laravel-app php artisan migrate:fresh --force || echo "⚠️  Migration might have failed, check logs"
+        else
+            echo "⏭️  Skipping migrations..."
+        fi
+    fi
+else
+    echo "📊 Running migrations..."
+    docker exec ppdb-laravel-app php artisan migrate --force || echo "⚠️  Migration might have failed, check logs"
+fi
 
-# Ask if want to seed
-read -p "Do you want to run seeders? (y/n) " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+# Run seeders
+if [ "$RUN_SEEDERS" = "true" ]; then
     echo "🌱 Running seeders..."
     docker exec ppdb-laravel-app php artisan db:seed --force
+elif [ "$NON_INTERACTIVE" = "false" ]; then
+    read -p "Do you want to run seeders? (y/n) " -n 1 -r
+    echo
+    if [[ $REPLY =~ ^[Yy]$ ]]; then
+        echo "🌱 Running seeders..."
+        docker exec ppdb-laravel-app php artisan db:seed --force
+    fi
 fi
 
 # Clear and cache

@@ -11,24 +11,22 @@ echo "📥 Pulling latest code..."
 git pull origin main
 
 echo "🐳 Stopping containers..."
-docker-compose down
+docker compose down
 
 echo "🔨 Building containers..."
-docker-compose build --no-cache
+docker compose build --no-cache
 
 echo "🚀 Starting containers..."
-docker-compose up -d
+docker compose up -d
 
 echo "⏳ Waiting for containers to be ready..."
 sleep 10
 
-echo "📊 Running database migrations..."
-docker exec ppdb-laravel-app php artisan migrate --force || true
-
-echo "🧹 Clearing Laravel cache..."
-docker exec ppdb-laravel-app php artisan config:cache
-docker exec ppdb-laravel-app php artisan route:cache
-docker exec ppdb-laravel-app php artisan view:cache
+# Run setup script (non-interactive mode, no fresh, no seeders)
+# Parameters: non-interactive=true, run-seeders=false, use-fresh=false
+echo "🔧 Running setup script..."
+chmod +x quick_setup.sh
+./quick_setup.sh true false false
 
 echo "✅ Deployment completed successfully!"
 
