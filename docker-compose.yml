@@ -1,3 +1,5 @@
+version: "3.9"
+
 services:
   app:
     build:
@@ -15,40 +17,40 @@ services:
     environment:
       - AUTO_MIGRATE=${AUTO_MIGRATE:-false}
       - AUTO_SEED=${AUTO_SEED:-false}
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USERNAME=ppdb_user
+      - DB_PASSWORD=password
     depends_on:
       db:
         condition: service_healthy
     networks:
       - web
+      - default
 
   db:
     image: mysql:8.0
     container_name: ppdb-laravel-db
     restart: unless-stopped
+    command: --default-authentication-plugin=mysql_native_password --bind-address=0.0.0.0
     environment:
-      - MYSQL_DATABASE=ppdb
-      - MYSQL_ROOT_PASSWORD=password
-      - MYSQL_USER=ppdb_user
-      - MYSQL_PASSWORD=password
+      MYSQL_DATABASE: ppdb
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_USER: ppdb_user
+      MYSQL_PASSWORD: password
+    ports:
+      - "3307:3306"
     volumes:
       - db_data:/var/lib/mysql
       - ./database/ppdb.sql:/docker-entrypoint-initdb.d/ppdb.sql
-    ports:
-      - "${DB_PORT:-3306}:3306"
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$MYSQL_ROOT_PASSWORD"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-ppassword"]
       interval: 10s
       timeout: 5s
-      retries: 5
-    networks:
-      - web
-
-networks:
-  web:
-    external: true
-    name: web
 
 volumes:
   db_data:
-    driver: local
 
+networks:
+  web:
+    driver: bridge
