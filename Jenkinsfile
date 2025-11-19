@@ -3,16 +3,14 @@ pipeline {
 
     stages {
         stage('Checkout') {
-            steps {
-                checkout scm
-            }
+            steps { checkout scm }
         }
 
         stage('Docker Build & Deploy') {
             steps {
                 script {
                     echo 'Stopping old containers...'
-                    sh "docker compose down"
+                    sh "docker compose down -v"  // hapus volume lama supaya DB fresh
 
                     echo 'Starting new containers...'
                     sh "docker compose up -d --build"
