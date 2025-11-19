@@ -36,19 +36,19 @@ pipeline {
                     """
 
                     echo 'Laravel setup in container...'
-                    # Copy .env dari .env.example sebelum generate key
-                    sh "docker compose exec -T app cp /var/www/html/.env.example /var/www/html/.env || true"
+                    // Buat .env dari .env.example jika belum ada
+                    sh "docker compose exec -T app sh -c 'cp -n /var/www/html/.env.example /var/www/html/.env || true'"
 
-                    # Install composer dependencies
+                    // Install composer dependencies
                     sh "docker compose exec -T app composer install --no-dev --prefer-dist"
 
-                    # Generate Laravel key
+                    // Generate Laravel key
                     sh "docker compose exec -T app php artisan key:generate --force"
 
-                    # Run migrations
+                    // Run migrations
                     sh "docker compose exec -T app php artisan migrate --force"
 
-                    # Clear cache & views
+                    // Clear cache & views
                     sh "docker compose exec -T app php artisan cache:clear"
                     sh "docker compose exec -T app php artisan view:clear"
                 }
