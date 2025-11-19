@@ -2,32 +2,22 @@ pipeline {
     agent any
 
     stages {
-
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Docker Build') {
-            steps {
-                script {
-                    echo "Building Docker image..."
-                    sh "docker build -t ppdb-app ."
-                }
-            }
-        }
-
-        stage('Deploy') {
+        stage('Docker Build & Deploy') {
             steps {
                 script {
                     echo 'Stopping old containers...'
                     sh "docker compose down"
 
                     echo 'Starting new containers...'
-                    sh "docker compose up -d"
+                    sh "docker compose up -d --build"
 
-                    echo 'Waiting for DB to be healthy...'
+                    echo 'Waiting for MySQL to be healthy...'
                     sh """
                     until [ "\$(docker inspect --format='{{.State.Health.Status}}' ppdb-laravel-db)" = "healthy" ]; do
                         echo "Waiting for MySQL..."
@@ -35,33 +25,31 @@ pipeline {
                     done
                     """
 
-                    echo 'Laravel setup in container...'
-                    // Buat .env dari .env.example jika belum ada
-                    sh "docker compose exec -T app sh -c 'cp -n /var/www/html/.env.example /var/www/html/.env || true'"
+                    echo 'Setting up Laravel...'
+                    sh """
+                    # Copy .env jika belum ada
+                    docker compose exec -T app sh -c 'cp -n /var/www/html/.env.example /var/www/html/.env || true'
 
-                    // Install composer dependencies
-                    sh "docker compose exec -T app composer install --no-dev --prefer-dist"
+                    # Install composer dependencies
+                    docker compose exec -T app composer install --no-dev --prefer-dist
 
-                    // Generate Laravel key
-                    sh "docker compose exec -T app php artisan key:generate --force"
+                    # Generate Laravel app key
+                    docker compose exec -T app php artisan key:generate --force
 
-                    // Run migrations
-                    sh "docker compose exec -T app php artisan migrate --force"
+                    # Run migrations
+                    docker compose exec -T app php artisan migrate --force
 
-                    // Clear cache & views
-                    sh "docker compose exec -T app php artisan cache:clear"
-                    sh "docker compose exec -T app php artisan view:clear"
+                    # Clear cache & views
+                    docker compose exec -T app php artisan cache:clear
+                    docker compose exec -T app php artisan view:clear
+                    """
                 }
             }
         }
     }
 
     post {
-        success {
-            echo 'Deployment berhasil!'
-        }
-        failure {
-            echo 'Deployment GAGAL. Cek log Jenkins.'
-        }
+        success { echo 'Deployment berhasil!' }
+        failure { echo 'Deployment GAGAL. Cek log Jenkins.' }
     }
 }
