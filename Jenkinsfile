@@ -37,6 +37,9 @@ pipeline {
                     """
 
                     echo 'Laravel setup in container...'
+                    // Buat .env dari .env.example sebelum generate key
+                    sh "docker compose exec -T app cp /var/www/html/.env.example /var/www/html/.env || true"
+
                     sh "docker compose exec -T app composer install --no-dev --prefer-dist"
                     sh "docker compose exec -T app php artisan key:generate --force"
                     sh "docker compose exec -T app php artisan migrate --force"
