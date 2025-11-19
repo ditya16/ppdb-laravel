@@ -25,13 +25,16 @@ pipeline {
 
                     echo 'Setting up Laravel...'
                     sh """
-                    # Copy .env jika belum ada
-                    docker compose exec -T app sh -c 'cp -n /var/www/html/.env.example /var/www/html/.env || true'
+                    # Hapus .env jika ada folder
+                    docker compose exec -T app rm -rf /var/www/html/.env
+
+                    # Copy .env.example jadi .env
+                    docker compose exec -T app cp /var/www/html/.env.example /var/www/html/.env
 
                     # Install composer dependencies
                     docker compose exec -T app composer install --no-dev --prefer-dist
 
-                    # Generate Laravel app key
+                    # Generate Laravel key
                     docker compose exec -T app php artisan key:generate --force
 
                     # Run migrations
