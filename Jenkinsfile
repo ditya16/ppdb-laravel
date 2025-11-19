@@ -13,9 +13,7 @@ pipeline {
             steps {
                 script {
                     echo "Building Docker image..."
-                    sh """
-                    docker build -t ppdb-app .
-                    """
+                    sh "docker build -t ppdb-app ."
                 }
             }
         }
@@ -29,11 +27,16 @@ pipeline {
                     echo 'Starting new containers...'
                     sh "docker compose up -d"
 
-                    echo 'Waiting for DB...'
-                    sh "sleep 15"
+                    echo 'Waiting for DB to be healthy...'
+                    // Tunggu sampai DB healthy sebelum lanjut
+                    sh """
+                    until [ \$(docker inspect --format='{{.State.Health.Status}}' ppdb-laravel-db) == "healthy" ]; do
+                        echo "Waiting for MySQL..."
+                        sleep 5
+                    done
+                    """
 
                     echo 'Laravel setup in container...'
-                    sh "docker compose exec -T db bash -c 'mysql -uroot -ppassword -e \"CREATE DATABASE IF NOT EXISTS ppdb\"'"
                     sh "docker compose exec -T app composer install --no-dev --prefer-dist"
                     sh "docker compose exec -T app php artisan key:generate --force"
                     sh "docker compose exec -T app php artisan migrate --force"
