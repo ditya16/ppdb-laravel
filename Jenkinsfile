@@ -28,7 +28,6 @@ pipeline {
                     sh "docker compose up -d"
 
                     echo 'Waiting for DB to be healthy...'
-                    // Loop sampai MySQL healthy, POSIX compliant
                     sh """
                     until [ "\$(docker inspect --format='{{.State.Health.Status}}' ppdb-laravel-db)" = "healthy" ]; do
                         echo "Waiting for MySQL..."
@@ -37,12 +36,19 @@ pipeline {
                     """
 
                     echo 'Laravel setup in container...'
-                    // Buat .env dari .env.example sebelum generate key
+                    # Copy .env dari .env.example sebelum generate key
                     sh "docker compose exec -T app cp /var/www/html/.env.example /var/www/html/.env || true"
 
+                    # Install composer dependencies
                     sh "docker compose exec -T app composer install --no-dev --prefer-dist"
+
+                    # Generate Laravel key
                     sh "docker compose exec -T app php artisan key:generate --force"
+
+                    # Run migrations
                     sh "docker compose exec -T app php artisan migrate --force"
+
+                    # Clear cache & views
                     sh "docker compose exec -T app php artisan cache:clear"
                     sh "docker compose exec -T app php artisan view:clear"
                 }

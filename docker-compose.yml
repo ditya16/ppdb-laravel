@@ -13,7 +13,8 @@ services:
     volumes:
       - ./ppdb/storage:/var/www/html/storage
       - ./ppdb/bootstrap/cache:/var/www/html/bootstrap/cache
-      - ./ppdb/.env:/var/www/html/.env
+      # Hapus dulu mount .env supaya Docker tidak bikin folder
+      # - ./ppdb/.env:/var/www/html/.env
     environment:
       - AUTO_MIGRATE=${AUTO_MIGRATE:-false}
       - AUTO_SEED=${AUTO_SEED:-false}
