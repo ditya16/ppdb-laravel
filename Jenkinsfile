@@ -1,21 +1,7 @@
 pipeline {
     agent any
 
-    environment {
-        CACHE_DIR = "/var/lib/jenkins/docker-cache"
-    }
-
     stages {
-
-        stage('Prepare Cache') {
-            steps {
-                script {
-                    sh """
-                    mkdir -p ${CACHE_DIR}
-                    """
-                }
-            }
-        }
 
         stage('Checkout') {
             steps {
@@ -23,16 +9,12 @@ pipeline {
             }
         }
 
-        stage('Docker Build (with Cache)') {
+        stage('Docker Build') {
             steps {
                 script {
-                    echo "Building Docker image with cache..."
-
+                    echo "Building Docker image..."
                     sh """
-                    docker buildx build \
-                        --cache-from=type=local,src=${CACHE_DIR} \
-                        --cache-to=type=local,dest=${CACHE_DIR} \
-                        -t ppdb-app .
+                    docker build -t ppdb-app .
                     """
                 }
             }
