@@ -1,23 +1,50 @@
 pipeline {
     agent any
 
+    environment {
+        CACHE_DIR = "/var/lib/jenkins/docker-cache"
+    }
+
     stages {
+
+        stage('Prepare Cache') {
+            steps {
+                script {
+                    sh """
+                    mkdir -p ${CACHE_DIR}
+                    """
+                }
+            }
+        }
+
         stage('Checkout') {
             steps {
                 checkout scm
             }
         }
 
-        stage('Build & Deploy') {
+        stage('Docker Build (with Cache)') {
             steps {
                 script {
-                    echo 'Stopping previous containers...'
+                    echo "Building Docker image with cache..."
+
+                    sh """
+                    docker buildx build \
+                        --cache-from=type=local,src=${CACHE_DIR} \
+                        --cache-to=type=local,dest=${CACHE_DIR} \
+                        -t ppdb-app .
+                    """
+                }
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                script {
+                    echo 'Stopping old containers...'
                     sh "docker compose down"
 
-                    echo 'Building images...'
-                    sh "docker compose build"  // tetap build image
-
-                    echo 'Starting containers...'
+                    echo 'Starting new containers...'
                     sh "docker compose up -d"
 
                     echo 'Waiting for DB...'
