@@ -27,8 +27,8 @@ RUN mkdir -p public && \
 # ====================================
 # Stage 2: PHP + Composer Dependencies
 # ====================================
-# 🔥 WAJIB UPDATE PHP KE 8.2
-FROM php:8.2-fpm-alpine AS php-base
+# 🔥 WAJIB UPDATE PHP KE 8.3 (Fix error PHPSpreadsheet)
+FROM php:8.3-fpm-alpine AS php-base
 
 RUN apk add --no-cache \
     git curl zip unzip libpng-dev libzip-dev oniguruma-dev mysql-client \
