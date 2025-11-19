@@ -1,4 +1,3 @@
-// Jenkinsfile
 pipeline {
     agent any
 
@@ -9,28 +8,24 @@ pipeline {
             }
         }
 
-        stage('Build & Deploy with Docker Compose') {
+        stage('Build & Deploy') {
             steps {
                 script {
-                    echo 'Stopping and cleaning up previous deployment...'
-                    sh "docker compose down" 
+                    echo 'Stopping previous containers...'
+                    sh "docker compose down"
 
-                    echo 'Building Docker images...'
-                    sh "docker compose build"
+                    echo 'Building images...'
+                    sh "docker compose build"  // tetap build image
 
-                    echo 'Starting containers in detached mode...'
+                    echo 'Starting containers...'
                     sh "docker compose up -d"
 
-                    // Memberi waktu DB untuk startup
-                    sh "sleep 15" 
+                    echo 'Waiting for DB...'
+                    sh "sleep 15"
 
-                    // Eksekusi perintah setup Laravel di container 'app'
-                    // Ganti 'app' dengan nama service PHP/App jika berbeda di docker-compose.yml
-                    echo 'Running migrations and key generation...'
-                    
-                    // Pastikan Database 'ppdb' ada di service 'db'
+                    echo 'Laravel setup in container...'
                     sh "docker compose exec -T db bash -c 'mysql -uroot -ppassword -e \"CREATE DATABASE IF NOT EXISTS ppdb\"'"
-                    
+                    sh "docker compose exec -T app composer install --no-dev --prefer-dist"
                     sh "docker compose exec -T app php artisan key:generate --force"
                     sh "docker compose exec -T app php artisan migrate --force"
                     sh "docker compose exec -T app php artisan cache:clear"
@@ -42,7 +37,7 @@ pipeline {
 
     post {
         success {
-            echo 'Deployment Berhasil! Aplikasi dapat diakses.'
+            echo 'Deployment berhasil!'
         }
         failure {
             echo 'Deployment GAGAL. Cek log Jenkins.'

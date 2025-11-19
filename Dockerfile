@@ -8,7 +8,14 @@ WORKDIR /app
 COPY ppdb/package.json .
 COPY ppdb/package-lock.json* .
 
-RUN npm install --legacy-peer-deps
+# ---- FIX TIMEOUT & NETWORK ----
+# 1. Pakai registry cepat (npmmirror)
+# 2. Perbesar timeout agar tidak ERR_SOCKET_TIMEOUT
+# 3. Install dengan prefer-offline agar lebih stabil
+RUN npm config set registry https://registry.npmmirror.com \
+    && npm config set fetch-retry-maxtimeout 300000 \
+    && npm config set fetch-timeout 300000 \
+    && npm install --legacy-peer-deps --prefer-offline --no-audit --progress=false
 
 COPY ppdb/resources ./resources
 COPY ppdb/webpack.mix.js .
