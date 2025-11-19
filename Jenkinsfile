@@ -28,9 +28,9 @@ pipeline {
                     sh "docker compose up -d"
 
                     echo 'Waiting for DB to be healthy...'
-                    // Tunggu sampai DB healthy sebelum lanjut
+                    // Loop sampai MySQL healthy, POSIX compliant
                     sh """
-                    until [ \$(docker inspect --format='{{.State.Health.Status}}' ppdb-laravel-db) == "healthy" ]; do
+                    until [ "\$(docker inspect --format='{{.State.Health.Status}}' ppdb-laravel-db)" = "healthy" ]; do
                         echo "Waiting for MySQL..."
                         sleep 5
                     done
